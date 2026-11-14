@@ -870,6 +870,75 @@ sb.auth.onAuthStateChange((_e, session) => show(session));
 
 </script>
 
+
+<script>
+
+// ---------- Freigabe ----------
+
+const pendingBox = document.createElement('section');
+
+pendingBox.className = 'card'; pendingBox.hidden = true;
+
+pendingBox.innerHTML = '<h3>⏳ Warte auf Freigabe</h3><p>Du bist registriert. Sobald der Admin dich freigibt, bist du dabei. Forza Ambrì!</p><button class="small secondary" onclick="sb.auth.signOut()">Abmelden</button>';
+
+document.querySelector('main').appendChild(pendingBox);
+
+ 
+
+const usersBox = document.createElement('div');
+
+$('view-admin').appendChild(usersBox);
+
+ 
+
+const _origLoadAll = loadAll;
+
+loadAll = async function () {
+
+  const { data } = await sb.from('profiles').select('approved').eq('id', userId).single();
+
+  if (!data || !data.approved) { $('app').hidden = true; pendingBox.hidden = false; return; }
+
+  pendingBox.hidden = true; $('app').hidden = false;
+
+  await _origLoadAll();
+
+  if (me.is_admin) renderUsers();
+
+};
+
+ 
+
+function renderUsers() {
+
+  const list = profiles.slice().sort((a, b) => (a.approved === b.approved ? 0 : a.approved ? 1 : -1));
+
+  usersBox.innerHTML = '<h3 style="margin-top:20px">👥 Mitglieder</h3>' + list.map(p => `
+
+    <div class="park">${p.approved ? '✅' : '⏳'} <b>${esc(p.display_name || 'Unbekannt')}</b>
+
+      ${p.id === userId ? '<small>(du)</small>' :
+
+        p.approved ? `<button class="small secondary" onclick="setApproved('${p.id}', false)">Sperren</button>`
+
+                   : `<button class="small" onclick="setApproved('${p.id}', true)">Freigeben</button>`}
+
+    </div>`).join('');
+
+}
+
+async function setApproved(uid, ok) {
+
+  const { error } = await sb.rpc('approve_user', { uid, ok });
+
+  if (error) alert('Fehler: ' + error.message); loadAll();
+
+}
+
+sb.auth.onAuthStateChange((_e, s) => { if (!s) pendingBox.hidden = true; });
+
+</script>
+
 </body>
 
 </html>
