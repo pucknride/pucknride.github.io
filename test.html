@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#06152e">
+<title>Puck & Ride</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="stylesheet" href="v2-style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <svg width="38" height="44" viewBox="0 0 38 44" aria-hidden="true">
+      <path d="M19 1 L36 7 V22 C36 33 28 40 19 43 C10 40 2 33 2 22 V7 Z" fill="#0a4fd6" stroke="#fff" stroke-width="2"/>
+      <path d="M6 24 L14 14 L19 19 L24 12 L32 24 Z" fill="#fff"/>
+      <line x1="10" y1="36" x2="28" y2="27" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="28" y1="36" x2="10" y2="27" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+      <ellipse cx="19" cy="34" rx="4" ry="2" fill="#06152e" stroke="#fff"/>
+    </svg>
+    <h1>Puck <span>&amp;</span> Ride</h1>
+  </div>
+  <div class="head-btns">
+    <button id="btn-help" class="icon" title="Hilfe" aria-label="Hilfe">❓</button>
+    <button id="btn-feedback" class="icon" title="Feedback" aria-label="Feedback" hidden>💬</button>
+    <button id="logout" class="icon" title="Abmelden" aria-label="Abmelden" hidden>🚪</button>
+  </div>
+</header>
+
+<div id="offline" class="banner" hidden>📡 Keine Verbindung – du siehst den letzten Stand.</div>
+<div id="update" class="banner update" hidden>✨ Neue Version – tippen zum Aktualisieren</div>
+
+<main>
+  <div class="hero">
+    <h2>Forza Ambrì!</h2>
+    <p id="hero-text">Gemeinsam ins Stadion. Jede Fahrt zählt.</p>
+    <div class="countdown" id="countdown"></div>
+  </div>
+
+  <div id="today"></div>
+
+  <section id="auth" class="card">
+    <h3>Anmelden</h3>
+    <input id="email" type="email" placeholder="E-Mail" autocomplete="email">
+    <input id="pw" type="password" placeholder="Passwort (mind. 6 Zeichen)" autocomplete="current-password">
+    <button id="login">Aufs Eis!</button>
+    <button id="register" class="secondary">Neu registrieren</button>
+    <p id="msg" class="msg"></p>
+  </section>
+
+  <section id="pending" class="card" hidden>
+    <h3>⏳ Warte auf Freigabe</h3>
+    <p>Du bist registriert. Sobald der Admin dich freigibt, bist du dabei.</p>
+  </section>
+
+  <section id="app" hidden>
+    <nav>
+      <button data-tab="spiele">🏒<span>Spiele</span></button>
+      <button data-tab="live" class="secondary">🔴<span>Live</span></button>
+      <button data-tab="statistik" class="secondary">📊<span>Statistik</span></button>
+      <button data-tab="stadien" class="secondary">🏟️<span>Stadien</span></button>
+      <button data-tab="profil" class="secondary">👤<span>Profil</span></button>
+      <button data-tab="admin" class="secondary" id="tab-admin" hidden>⚙️<span>Admin</span></button>
+    </nav>
+    <div id="view-spiele"></div>
+    <div id="view-live" hidden></div>
+    <div id="view-statistik" hidden></div>
+    <div id="view-stadien" hidden></div>
+    <div id="view-profil" hidden></div>
+    <div id="view-admin" hidden></div>
+  </section>
+
+  <p class="version">Version 2.0 (Test)</p>
+</main>
+
+<div id="overlay" hidden></div>
+
+<script src="v2-core.js"></script>
+<script src="v2-spiele.js"></script>
+<script src="v2-statistik.js"></script>
+<script src="v2-live.js"></script>
+<script src="v2-extras.js"></script>
+</body>
+</html>
