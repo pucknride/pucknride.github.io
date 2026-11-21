@@ -998,6 +998,65 @@ $('imp-btn').onclick = async () => {
 };
 </script>
 
+<script>
+// ---------- "Bist du dabei?" + kürzere Spieleliste ----------
+function gameCard(g, now, km) {
+  const s = stadiumOf(g.stadium_id);
+  const su = g.signups.filter(r => r.role !== 'nicht');
+  const no = g.signups.filter(r => r.role === 'nicht');
+  const drivers = su.filter(r => r.role === 'fahrer'), riders = su.filter(r => r.role === 'mitfahrer');
+  const cap = drivers.reduce((n, d) => n + (prof(d.user_id).seats || settings.max_pro_auto || 5), 0);
+  const missing = su.length - cap, hours = (new Date(g.starts_at) - now) / 3600e3;
+  const mine = g.signups.find(r => r.user_id === userId);
+  let hint = '';
+  if (su.length && missing > 0) {
+    hint = `<div class="warn">Es fehlen noch ${missing} Plätze, also mindestens ein Fahrer.`;
+    if (hours <= 12) {
+      const v = riders.slice().sort((a, b) => (km[a.user_id] || 0) - (km[b.user_id] || 0))[0];
+      if (v) hint += `<br>💡 Vorschlag: <b>${nameOf(v.user_id)}</b> (bisher ${km[v.user_id] || 0} km)`;
+    }
+    hint += '</div>';
+  }
+  const btn = (role, label) =>
+    `<button class="small ${mine && mine.role === role ? '' : 'secondary'}" onclick="signup(${g.id},'${role}')">${label}</button>`;
+  return `<div class="card ${s.favorite ? 'fav' : ''}">
+    <div class="vs">${s.favorite ? '🔵⚪ ' : '🚗 '}${esc(s.team)}</div>
+    <small>${esc(s.arena)} · ${fmt(g.starts_at)} · ${gameKm(g)} km hin und zurück${g.km_override != null ? ' (korrigiert)' : ''}</small>
+    <p>🚗 Fahrer: ${drivers.map(d => nameOf(d.user_id)).join(', ') || '–'}<br>
+       🧍 Mitfahrer: ${riders.map(r => nameOf(r.user_id)).join(', ') || '–'}
+       ${no.length ? `<br><small>❌ Nicht dabei: ${no.map(r => nameOf(r.user_id)).join(', ')}</small>` : ''}</p>
+    ${hint}
+    ${btn('fahrer', 'Ich fahre')}${btn('mitfahrer', 'Ich fahre mit')}${btn('nicht', 'Ich komme nicht')}
+    ${mine ? `<button class="small secondary" onclick="signoff(${g.id})">Antwort löschen</button>` : ''}
+    ${me.is_admin ? `<button class="small secondary" onclick="fixKm(${g.id}, '${g.km_override ?? ''}')">km korrigieren</button>
+      <button class="small danger" onclick="delGame(${g.id})">Löschen</button>` : ''}
+    ${aboBlock(g)}
+  </div>`;
+}
+
+renderGames = function () {
+  const now = new Date(), km = kmStand();
+  const list = games.filter(g => new Date(g.starts_at) > new Date(now - 6 * 3600e3));
+  if (!list.length) { $('games').innerHTML = '<div class="card">Noch keine Spiele erfasst. 🏒</div>'; return; }
+  const next = list[0];
+  const answered = next.signups.some(r => r.user_id === userId);
+  const ask = answered ? '' : `<div class="card fav" style="text-align:center">
+      <h3>🏒 Bist du dabei?</h3>
+      <div class="vs">${esc(stadiumOf(next.stadium_id).team)}</div>
+      <small>${fmt(next.starts_at)}</small><br>
+      <button onclick="signup(${next.id},'fahrer')">🚗 Ich fahre</button>
+      <button class="secondary" onclick="signup(${next.id},'mitfahrer')">🧍 Ich fahre mit</button>
+      <button class="secondary" onclick="signup(${next.id},'nicht')">❌ Ich komme nicht</button>
+    </div>`;
+  const first = list.slice(0, 3).map(g => gameCard(g, now, km)).join('');
+  const rest = list.slice(3);
+  $('games').innerHTML = ask + first + (rest.length
+    ? `<details><summary>Weitere ${rest.length} Spiele anzeigen</summary>${rest.map(g => gameCard(g, now, km)).join('')}</details>`
+    : '');
+};
+if (games.length) renderGames();
+</script>
+  
 </body>
 
 </html>
