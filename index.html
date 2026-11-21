@@ -944,6 +944,60 @@ sb.auth.onAuthStateChange((_e, s) => { if (!s) pendingBox.hidden = true; });
 
 </script>
 
+<script>
+// ---------- SIHF-Spielplan-Import (Ambrì) ----------
+const AMBRI_ID = 101152, SIHF_SEASON = 2027;
+const impBox = document.createElement('div');
+impBox.innerHTML = `<h3 style="margin-top:20px">📅 Spielplan</h3>
+  <button id="imp-btn">Ambrì-Spielplan von SIHF importieren</button>
+  <p id="imp-msg"></p>`;
+$('view-admin').appendChild(impBox);
+
+function sihfJsonp(url) {
+  return new Promise((ok, ko) => {
+    const cb = 'sihf' + Date.now(), s = document.createElement('script');
+    const t = setTimeout(() => { end(); ko(new Error('Zeitüberschreitung')); }, 15000);
+    function end() { clearTimeout(t); delete window[cb]; s.remove(); }
+    window[cb] = d => { end(); ok(d); };
+    s.onerror = () => { end(); ko(new Error('SIHF nicht erreichbar')); };
+    s.src = url + '&callback=' + cb; document.body.appendChild(s);
+  });
+}
+
+$('imp-btn').onclick = async () => {
+  const msg = $('imp-msg');
+  msg.textContent = '⏳ Lade Spielplan …';
+  try {
+    const y = SIHF_SEASON;
+    const url = 'https://data.sihf.ch/Statistic/api/cms/cache300?alias=results&searchQuery=1//1'
+      + `&filterQuery=${y}/all/01.08.${y - 1}-30.04.${y}&filterBy=season,phase,date`
+      + '&orderBy=date&orderByDescending=false&take=1000&skip=0&language=de';
+    const d = await sihfJsonp(url);
+    const now = new Date(), rows = [];
+    (d.data || []).forEach(r => {
+      const teams = r.filter(c => c && c.type === 'team');
+      if (teams.length < 2) return;
+      const [home, away] = teams;
+      if (home.id !== AMBRI_ID && away.id !== AMBRI_ID) return;
+      const date = r.find(c => typeof c === 'string' && /^\d{2}\.\d{2}\.\d{4}$/.test(c));
+      const time = r.find(c => typeof c === 'string' && /^\d{2}:\d{2}$/.test(c)) || '19:45';
+      const link = r.find(c => c && c.type === 'linkToGameDetail');
+      if (!date || !link) return;
+      const [dd, mm, yy] = date.split('.');
+      const start = new Date(`${yy}-${mm}-${dd}T${time}`);
+      if (start < now) return;                       // nur kommende Spiele
+      const st = stadiums.find(s => s.sihf_club_id === home.id);
+      if (!st) return;
+      rows.push({ stadium_id: st.id, starts_at: start.toISOString(), sihf_id: String(link.gameId) });
+    });
+    if (!rows.length) { msg.textContent = 'Keine neuen Spiele gefunden.'; return; }
+    const { error } = await sb.from('games').upsert(rows, { onConflict: 'sihf_id', ignoreDuplicates: true });
+    msg.textContent = error ? 'Fehler: ' + error.message : `✅ ${rows.length} Ambrì-Spiele geprüft und übernommen.`;
+    if (!error) loadGames();
+  } catch (e) { msg.textContent = '❌ ' + e.message; }
+};
+</script>
+
 </body>
 
 </html>
