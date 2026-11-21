@@ -1,949 +1,286 @@
 <!DOCTYPE html>
-
 <html lang="de">
-
 <head>
-
 <meta charset="utf-8">
-
 <meta name="viewport" content="width=device-width, initial-scale=1">
-
 <meta name="theme-color" content="#06152e">
-
 <title>Puck & Ride</title>
 <link rel="manifest" href="manifest.json">
-
 <link rel="icon" href="icon.svg">
-
 <link rel="apple-touch-icon" href="icon.svg">
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <style>
-
   :root { --blue:#0a4fd6; --blue2:#2f7bff; --night:#06152e; --card:#0e2347; --line:#1d3a6b; }
-
   * { box-sizing:border-box; }
-
   body { margin:0; font-family:system-ui,"Segoe UI",sans-serif; color:#fff; min-height:100vh;
-
     background:radial-gradient(circle at 50% -20%,#1b4fa8 0%,var(--night) 55%) fixed,var(--night); }
-
   header { padding:14px 16px; display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:5;
-
     background:linear-gradient(90deg,#06152e,#0a2a66); border-bottom:3px solid var(--blue2); }
-
   .brand { display:flex; align-items:center; gap:10px; }
-
   .brand h1 { margin:0; font-size:1.3rem; letter-spacing:2px; text-transform:uppercase; font-weight:900; }
-
   .brand h1 span { color:var(--blue2); }
-
   main { max-width:640px; margin:0 auto; padding:16px; }
-
   .hero { text-align:center; padding:24px 12px; margin-bottom:14px; border-radius:16px; position:relative; overflow:hidden;
-
     background:linear-gradient(135deg,var(--blue) 0%,#062a73 60%,#031534 100%); box-shadow:0 8px 30px rgba(10,79,214,.45); }
-
   .hero::after { content:""; position:absolute; inset:0; background:repeating-linear-gradient(115deg,transparent 0 22px,rgba(255,255,255,.04) 22px 24px); }
-
   .hero h2 { margin:0; font-size:2rem; font-weight:900; letter-spacing:3px; text-transform:uppercase; text-shadow:0 3px 12px rgba(0,0,0,.5); }
-
   .hero p { margin:6px 0 0; opacity:.9; position:relative; z-index:1; }
-
   .countdown { display:flex; justify-content:center; gap:10px; margin-top:14px; position:relative; z-index:1; }
-
   .countdown div { background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.25); border-radius:10px; padding:8px 10px; min-width:62px; }
-
   .countdown b { display:block; font-size:1.6rem; font-variant-numeric:tabular-nums; }
-
   .countdown small { color:#cfe0ff; font-size:.7rem; text-transform:uppercase; letter-spacing:1px; }
-
   .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px; margin-bottom:12px; box-shadow:0 4px 14px rgba(0,0,0,.35); }
-
   .fav { border:2px solid var(--blue2); box-shadow:0 0 18px rgba(47,123,255,.35); }
-
   h3, h4 { margin-top:0; text-transform:uppercase; letter-spacing:1px; }
-
   input, select, button { font-size:1rem; padding:11px; margin:6px 0; width:100%; border-radius:10px; }
-
   input, select { background:#081a38; color:#fff; border:1px solid var(--line); }
-
   button { background:linear-gradient(180deg,var(--blue2),var(--blue)); color:#fff; border:0; cursor:pointer; font-weight:700; }
-
   button:active { transform:scale(.97); }
-
   button.secondary { background:#24406f; }
-
   button.small { width:auto; padding:8px 12px; margin:4px 6px 4px 0; font-size:.9rem; }
-
   button.danger { background:#a3172d; }
-
   nav { display:flex; gap:4px; margin-bottom:14px; flex-wrap:wrap; }
-
   nav button { flex:1; padding:10px 4px; font-size:.8rem; text-transform:uppercase; }
-
   label { color:#cfe0ff; font-size:.9rem; }
-
   label.check { display:flex; gap:8px; align-items:center; color:#fff; }
-
   label.check input { width:auto; }
-
   .warn { background:rgba(255,193,7,.15); border:1px solid #ffc107; border-radius:10px; padding:8px; margin:8px 0; }
-
   .abo { background:rgba(47,123,255,.12); border:1px dashed var(--blue2); border-radius:10px; padding:8px; margin-top:10px; font-size:.9rem; }
-
   .msg { color:#ff6b81; }
-
   small { color:#a9bfe6; }
-
   a { color:#8fb8ff; }
-
   table { width:100%; border-collapse:collapse; }
-
   td, th { padding:7px 4px; text-align:left; border-bottom:1px solid var(--line); }
-
   th { color:#8fb8ff; font-size:.8rem; text-transform:uppercase; }
-
   .vs { font-size:1.15rem; font-weight:900; text-transform:uppercase; }
-
+  details { margin-top:10px; background:rgba(255,255,255,.04); border-radius:10px; padding:6px 10px; }
+  summary { cursor:pointer; color:#8fb8ff; font-weight:700; }
+  .park { border-top:1px solid var(--line); padding:6px 0; font-size:.9rem; }
 </style>
-
 </head>
-
 <body>
-
 <header>
-
   <div class="brand">
-
     <svg width="38" height="44" viewBox="0 0 38 44" aria-hidden="true">
-
       <path d="M19 1 L36 7 V22 C36 33 28 40 19 43 C10 40 2 33 2 22 V7 Z" fill="#0a4fd6" stroke="#fff" stroke-width="2"/>
-
       <path d="M6 24 L14 14 L19 19 L24 12 L32 24 Z" fill="#fff"/>
-
       <line x1="10" y1="36" x2="28" y2="27" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
-
       <line x1="28" y1="36" x2="10" y2="27" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
-
       <ellipse cx="19" cy="34" rx="4" ry="2" fill="#06152e" stroke="#fff"/>
-
     </svg>
-
     <h1>Puck <span>&amp;</span> Ride</h1>
-
   </div>
-
   <button id="logout" class="small secondary" hidden>Abmelden</button>
-
 </header>
-
 <main>
-
   <div class="hero">
-
     <h2>Forza Ambrì!</h2>
-
     <p id="hero-text">Gemeinsam ins Stadion. Jede Fahrt zählt.</p>
-
     <div class="countdown" id="countdown"></div>
-
   </div>
-
- 
 
   <section id="auth" class="card">
-
     <h3>Anmelden</h3>
-
     <input id="email" type="email" placeholder="E-Mail">
-
     <input id="pw" type="password" placeholder="Passwort (mind. 6 Zeichen)">
-
     <button id="login">Aufs Eis!</button>
-
     <button id="register" class="secondary">Neu registrieren</button>
-
     <p id="msg" class="msg"></p>
-
   </section>
-
- 
 
   <section id="app" hidden>
-
     <nav>
-
       <button data-tab="spiele">🏒 Spiele</button>
-
       <button data-tab="rangliste" class="secondary">🏆 Rangliste</button>
-
       <button data-tab="stadien" class="secondary">🏟️ Stadien</button>
-
       <button data-tab="profil" class="secondary">👤 Profil</button>
-
       <button data-tab="admin" class="secondary" id="tab-admin" hidden>⚙️ Admin</button>
-
     </nav>
 
- 
-
     <div id="view-spiele">
-
       <div class="card">
-
         <h3>Neues Spiel</h3>
-
         <select id="g-stadium"></select>
-
         <input id="g-date" type="datetime-local">
-
         <button id="g-add">Spiel erfassen</button>
-
         <p id="g-msg" class="msg"></p>
-
       </div>
-
       <div id="games"></div>
-
     </div>
-
- 
 
     <div id="view-rangliste" hidden></div>
-
     <div id="view-stadien" hidden></div>
 
- 
-
     <div id="view-profil" class="card" hidden>
-
       <h3>Mein Profil</h3>
-
       <input id="p-name" placeholder="Name">
-
       <input id="p-phone" placeholder="Handynummer (für Twint)">
-
       <input id="p-car" placeholder="Auto, z. B. VW Golf">
-
       <input id="p-seats" type="number" min="1" max="9" placeholder="Sitzplätze inkl. Fahrer">
-
       <label class="check"><input id="p-company" type="checkbox"> Firmenauto</label>
-
       <label class="check"><input id="p-abo" type="checkbox"> Ich habe ein Ambrì-Abo</label>
-
       <select id="p-abotype">
-
         <option value="">Abo-Typ wählen</option>
-
         <option value="steh">Stehplatz</option>
-
         <option value="sitz">Sitzplatz</option>
-
       </select>
-
       <button id="save">Speichern</button>
-
       <p id="p-msg"></p>
-
     </div>
-
- 
 
     <div id="view-admin" class="card" hidden>
-
       <h3>Admin-Einstellungen</h3>
-
       <label>Ausgleich in CHF pro km</label>
-
       <input id="a-rp" type="number" step="0.05">
-
       <label>Abo-Beitrag Stehplatz in CHF</label>
-
       <input id="a-steh" type="number" step="1">
-
       <label>Abo-Beitrag Sitzplatz in CHF</label>
-
       <input id="a-sitz" type="number" step="1">
-
       <label>Standard-Plätze pro Auto</label>
-
       <input id="a-max" type="number" min="1" max="9">
-
       <button id="a-save">Einstellungen speichern</button>
-
       <p id="a-msg"></p>
-
     </div>
-
   </section>
-
 </main>
-
-<style>
-
-  details { margin-top:10px; background:rgba(255,255,255,.04); border-radius:10px; padding:6px 10px; }
-
-  summary { cursor:pointer; color:#8fb8ff; font-weight:700; }
-
-  .park { border-top:1px solid var(--line); padding:6px 0; font-size:.9rem; }
-
-</style>
-
 <script>
-
 const sb = supabase.createClient(
-
   'https://gthqsodiidamaofodggd.supabase.co',
-
   'sb_publishable_Z1fUiU-B-HpnHQ2SR2sxKw_9-vwIOE6'
-
 );
-
 const $ = id => document.getElementById(id);
-
 const START = 'Telldenkmal, Altdorf UR';
-
 let userId = null, me = {}, profiles = [], stadiums = [], settings = {}, games = [], parking = [], timer = null;
 
- 
-
 const esc = t => String(t ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-
 const prof = id => profiles.find(p => p.id === id) || {};
-
 const nameOf = id => esc(prof(id).display_name || 'Unbekannt');
-
 const stadiumOf = id => stadiums.find(s => s.id === id) || {};
-
 const fmt = d => new Date(d).toLocaleString('de-CH', { weekday:'short', day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
-
 const chf = n => Number(n || 0).toFixed(2);
-
 const gameKm = g => g.km_override ?? (stadiumOf(g.stadium_id).km_einfach || 0) * 2;
-
 const maps = q => 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(q);
-
 const route = to => 'https://www.google.com/maps/dir/?api=1&origin=' + encodeURIComponent(START) + '&destination=' + encodeURIComponent(to);
 
- 
-
 // ---------- Login ----------
-
 function show(session) {
-
   const on = !!session;
-
   $('auth').hidden = on; $('app').hidden = !on; $('logout').hidden = !on;
-
   if (on) { userId = session.user.id; loadAll(); }
-
 }
-
 $('login').onclick = async () => {
-
   const { error } = await sb.auth.signInWithPassword({ email: $('email').value.trim(), password: $('pw').value });
-
   $('msg').textContent = error ? 'Fehler: ' + error.message : '';
-
 };
-
 $('register').onclick = async () => {
-
   const { error } = await sb.auth.signUp({ email: $('email').value.trim(), password: $('pw').value });
-
   $('msg').textContent = error ? 'Fehler: ' + error.message : 'Registriert! Jetzt anmelden.';
-
 };
-
 $('logout').onclick = () => sb.auth.signOut();
 
- 
-
 // ---------- Tabs ----------
-
 document.querySelectorAll('nav button').forEach(b => b.onclick = () => {
-
   const t = b.dataset.tab;
-
   ['spiele','rangliste','stadien','profil','admin'].forEach(v => $('view-' + v).hidden = v !== t);
-
   document.querySelectorAll('nav button').forEach(x => x.className = x.dataset.tab === t ? '' : 'secondary');
-
 });
 
- 
-
 // ---------- Daten ----------
-
 async function loadAll() {
-
   const [p, s, st, pk] = await Promise.all([
-
     sb.from('profiles').select('*'),
-
     sb.from('stadiums').select('*').order('favorite', { ascending: false }).order('team'),
-
     sb.from('settings').select('*').single(),
-
     sb.from('parking').select('*').order('id')
-
   ]);
-
   profiles = p.data || []; stadiums = s.data || []; parking = pk.data || [];
-
   settings = st.data || { rappen_pro_km: 0.2, preis_steh: 20, preis_sitz: 30, max_pro_auto: 5 };
-
   me = prof(userId);
-
   $('tab-admin').hidden = !me.is_admin;
-
   fillProfil(); fillAdmin(); renderStadien();
-
-  $('g-stadium').innerHTML = stadiums.map(s => `<option value="${s.id}">${esc(s.team)} (${esc(s.city)})</option>`).join('');
-
+  $('g-stadium').innerHTML = stadiums.map(s => '<option value="' + s.id + '">' + esc(s.team) + ' (' + esc(s.city) + ')</option>').join('');
   await loadGames();
-
 }
-
 async function loadGames() {
-
   const { data, error } = await sb.from('games').select('*, signups(*), abo_offers(*)').order('starts_at');
-
   if (error) { $('games').innerHTML = '<p class="msg">Fehler: ' + esc(error.message) + '</p>'; return; }
-
   games = data || [];
-
   renderGames(); renderRangliste(); startCountdown();
-
 }
-
- 
 
 // ---------- Countdown ----------
-
 function startCountdown() {
-
   clearInterval(timer);
-
   const next = games.find(g => new Date(g.starts_at) > new Date());
-
   if (!next) { $('countdown').innerHTML = ''; $('hero-text').textContent = 'Noch kein Spiel geplant. Erfasse das nächste!'; return; }
-
-  $('hero-text').innerHTML = `Nächstes Spiel: <b>${esc(stadiumOf(next.stadium_id).team)}</b> · ${fmt(next.starts_at)}`;
-
+  $('hero-text').innerHTML = 'Nächstes Spiel: <b>' + esc(stadiumOf(next.stadium_id).team) + '</b> · ' + fmt(next.starts_at);
   const tick = () => {
-
     const d = Math.max(0, new Date(next.starts_at) - new Date()) / 1000;
-
     const t = [Math.floor(d / 86400), Math.floor(d % 86400 / 3600), Math.floor(d % 3600 / 60), Math.floor(d % 60)];
-
-    $('countdown').innerHTML = ['Tage','Std','Min','Sek'].map((l, i) => `<div><b>${String(t[i]).padStart(2,'0')}</b><small>${l}</small></div>`).join('');
-
+    $('countdown').innerHTML = ['Tage','Std','Min','Sek'].map((l, i) => '<div><b>' + String(t[i]).padStart(2,'0') + '</b><small>' + l + '</small></div>').join('');
   };
-
   tick(); timer = setInterval(tick, 1000);
-
 }
-
- 
 
 // ---------- Kilometer ----------
-
 function kmStand() {
-
   const km = {}; profiles.forEach(p => km[p.id] = 0);
-
   games.filter(g => new Date(g.starts_at) < new Date()).forEach(g => {
-
     g.signups.filter(r => r.role === 'fahrer').forEach(r => km[r.user_id] = (km[r.user_id] || 0) + gameKm(g));
-
   });
-
   return km;
-
 }
-
 async function fixKm(gameId, current) {
-
   const v = prompt('Kilometer hin und zurück für dieses Spiel (leer = Standard):', current);
-
   if (v === null) return;
-
   const km = v.trim() === '' ? null : parseFloat(v);
-
   const { error } = await sb.from('games').update({ km_override: km }).eq('id', gameId);
-
   if (error) alert('Fehler: ' + error.message); loadGames();
-
 }
-
- 
 
 // ---------- Abo-Ausleihe ----------
-
 function aboBlock(g) {
-
   if (!stadiumOf(g.stadium_id).favorite) return '';
-
   const offers = g.abo_offers || [];
-
   let h = '<div class="abo"><b>🎟️ Abos</b><br>';
-
   if (!offers.length) h += '<small>Noch kein Abo frei.</small><br>';
-
   offers.forEach(o => {
-
     const owner = prof(o.owner_id);
-
     const typ = owner.abo_type === 'sitz' ? 'Sitzplatz' : 'Stehplatz';
-
     if (!o.borrower_id) {
-
-      h += `${nameOf(o.owner_id)} (${typ}) · CHF ${chf(o.price)} `;
-
-      if (o.owner_id !== userId) h += `<button class="small" onclick="reserveAbo(${o.id})">Reservieren</button>`;
-
-      if (o.owner_id === userId || me.is_admin) h += `<button class="small secondary" onclick="delAbo(${o.id})">Zurückziehen</button>`;
-
+      h += nameOf(o.owner_id) + ' (' + typ + ') · CHF ' + chf(o.price) + ' ';
+      if (o.owner_id !== userId) h += '<button class="small" onclick="reserveAbo(' + o.id + ')">Reservieren</button>';
+      if (o.owner_id === userId || me.is_admin) h += '<button class="small secondary" onclick="delAbo(' + o.id + ')">Zurückziehen</button>';
     } else {
-
-      h += `${nameOf(o.owner_id)} (${typ}) → ${nameOf(o.borrower_id)} · CHF ${chf(o.price)} · ${o.paid ? '✅ bezahlt' : '⏳ offen'} `;
-
+      h += nameOf(o.owner_id) + ' (' + typ + ') → ' + nameOf(o.borrower_id) + ' · CHF ' + chf(o.price) + ' · ' + (o.paid ? '✅ bezahlt' : '⏳ offen') + ' ';
       if (!o.paid && o.borrower_id === userId)
-
-        h += `<br><small>Twint an ${esc(owner.phone || 'Nummer fehlt')}</small> <button class="small secondary" onclick="copyText('${esc(owner.phone || '')}')">Nummer kopieren</button>`;
-
+        h += '<br><small>Twint an ' + esc(owner.phone || 'Nummer fehlt') + '</small> <button class="small secondary" onclick="copyText(\'' + esc(owner.phone || '') + '\')">Nummer kopieren</button>';
       if (!o.paid && (o.borrower_id === userId || o.owner_id === userId || me.is_admin))
-
-        h += `<button class="small" onclick="markPaid(${o.id})">Bezahlt</button>`;
-
+        h += '<button class="small" onclick="markPaid(' + o.id + ')">Bezahlt</button>';
     }
-
     h += '<br>';
-
   });
-
   if (me.has_abo && !offers.find(o => o.owner_id === userId))
-
-    h += `<button class="small secondary" onclick="offerAbo(${g.id})">Mein Abo ist frei</button>`;
-
+    h += '<button class="small secondary" onclick="offerAbo(' + g.id + ')">Mein Abo ist frei</button>';
   return h + '</div>';
-
 }
-
 async function offerAbo(gameId) {
-
   const price = me.abo_type === 'sitz' ? settings.preis_sitz : settings.preis_steh;
-
   const { error } = await sb.from('abo_offers').insert({ game_id: gameId, owner_id: userId, price });
-
   if (error) alert('Fehler: ' + error.message); loadGames();
-
 }
-
 async function reserveAbo(id) {
-
   const { error } = await sb.from('abo_offers').update({ borrower_id: userId }).eq('id', id).is('borrower_id', null);
-
   if (error) alert('Fehler: ' + error.message); loadGames();
-
 }
-
 async function markPaid(id) { await sb.from('abo_offers').update({ paid: true }).eq('id', id); loadGames(); }
-
 async function delAbo(id) {
-
   const { error } = await sb.from('abo_offers').delete().eq('id', id);
-
   if (error) alert('Nur der Admin kann ein Angebot löschen.'); loadGames();
-
 }
-
 function copyText(t) { navigator.clipboard.writeText(t).then(() => alert('Kopiert: ' + t)); }
 
- 
-
-// ---------- Spiele ----------
-
-function renderGames() {
-
-  const now = new Date(), km = kmStand();
-
-  const list = games.filter(g => new Date(g.starts_at) > new Date(now - 6 * 3600e3));
-
-  if (!list.length) { $('games').innerHTML = '<div class="card">Noch keine Spiele erfasst. Wer startet die Saison? 🏒</div>'; return; }
-
-  $('games').innerHTML = list.map(g => {
-
-    const s = stadiumOf(g.stadium_id), su = g.signups;
-
-    const drivers = su.filter(r => r.role === 'fahrer'), riders = su.filter(r => r.role === 'mitfahrer');
-
-    const cap = drivers.reduce((n, d) => n + (prof(d.user_id).seats || settings.max_pro_auto || 5), 0);
-
-    const missing = su.length - cap, hours = (new Date(g.starts_at) - now) / 3600e3;
-
-    const mine = su.find(r => r.user_id === userId);
-
-    let hint = '';
-
-    if (su.length && missing > 0) {
-
-      hint = `<div class="warn">Es fehlen noch ${missing} Plätze, also mindestens ein Fahrer.`;
-
-      if (hours <= 12) {
-
-        const v = riders.slice().sort((a, b) => (km[a.user_id] || 0) - (km[b.user_id] || 0))[0];
-
-        if (v) hint += `<br>💡 Vorschlag: <b>${nameOf(v.user_id)}</b> (bisher ${km[v.user_id] || 0} km)`;
-
-      }
-
-      hint += '</div>';
-
-    }
-
-    return `<div class="card ${s.favorite ? 'fav' : ''}">
-
-      <div class="vs">${s.favorite ? '🔵⚪ ' : '🚗 '}${esc(s.team)}</div>
-
-      <small>${esc(s.arena)} · ${fmt(g.starts_at)} · ${gameKm(g)} km hin und zurück${g.km_override != null ? ' (korrigiert)' : ''}</small>
-
-      <p>🚗 Fahrer: ${drivers.map(d => nameOf(d.user_id)).join(', ') || '–'}<br>
-
-         🧍 Mitfahrer: ${riders.map(r => nameOf(r.user_id)).join(', ') || '–'}</p>
-
-      ${hint}
-
-      <button class="small" onclick="signup(${g.id},'fahrer')">Ich fahre</button>
-
-      <button class="small secondary" onclick="signup(${g.id},'mitfahrer')">Ich fahre mit</button>
-
-      ${mine ? `<button class="small secondary" onclick="signoff(${g.id})">Abmelden</button>` : ''}
-
-      ${me.is_admin ? `<button class="small secondary" onclick="fixKm(${g.id}, '${g.km_override ?? ''}')">km korrigieren</button>
-
-        <button class="small danger" onclick="delGame(${g.id})">Löschen</button>` : ''}
-
-      ${aboBlock(g)}
-
-    </div>`;
-
-  }).join('');
-
-}
-
-$('g-add').onclick = async () => {
-
-  if (!$('g-date').value) { $('g-msg').textContent = 'Bitte Datum und Zeit wählen.'; return; }
-
-  const { error } = await sb.from('games').insert({ stadium_id: parseInt($('g-stadium').value), starts_at: new Date($('g-date').value).toISOString() });
-
-  $('g-msg').textContent = error ? 'Fehler: ' + error.message : '';
-
-  if (!error) { $('g-date').value = ''; loadGames(); }
-
-};
-
-async function signup(gameId, role) {
-
-  const { error } = await sb.from('signups').upsert({ game_id: gameId, user_id: userId, role });
-
-  if (error) alert('Fehler: ' + error.message); loadGames();
-
-}
-
-async function signoff(gameId) { await sb.from('signups').delete().eq('game_id', gameId).eq('user_id', userId); loadGames(); }
-
-async function delGame(gameId) { if (!confirm('Spiel wirklich löschen?')) return; await sb.from('games').delete().eq('id', gameId); loadGames(); }
-
- 
-
-// ---------- Rangliste ----------
-
-function renderRangliste() {
-
-  const km = kmStand();
-
-  const list = profiles.map(p => ({ ...p, km: km[p.id] || 0 })).sort((a, b) => b.km - a.km);
-
-  const avg = list.length ? list.reduce((s, p) => s + p.km, 0) / list.length : 0;
-
-  const rp = Number(settings.rappen_pro_km || 0.2), medal = ['🥇','🥈','🥉'];
-
-  const rows = {};
-
-  games.flatMap(g => g.abo_offers || []).filter(o => o.borrower_id).forEach(o => {
-
-    const k = o.borrower_id + '|' + o.owner_id;
-
-    rows[k] = rows[k] || { b: o.borrower_id, o: o.owner_id, n: 0, open: 0 };
-
-    rows[k].n++; if (!o.paid) rows[k].open += Number(o.price || 0);
-
-  });
-
-  const abo = Object.values(rows);
-
-  $('view-rangliste').innerHTML = `<div class="card">
-
-    <h3>🏆 Kilometer-Tabelle</h3>
-
-    <table><tr><th>Name</th><th>km</th><th>Diff.</th><th>CHF</th></tr>
-
-    ${list.map((p, i) => { const d = p.km - avg; return `<tr><td>${p.km ? (medal[i] || '') : ''} ${esc(p.display_name || 'Unbekannt')}${p.company_car ? ' 🏢' : ''}</td>
-
-      <td>${p.km}</td><td>${d >= 0 ? '+' : ''}${Math.round(d)}</td><td>${chf(d * rp)}</td></tr>`; }).join('')}
-
-    </table>
-
-    <small>Schnitt ${Math.round(avg)} km · ${chf(rp)} CHF/km · 🏢 Firmenauto. Nur zur Übersicht, kein Muss.</small>
-
-  </div>
-
-  <div class="card"><h4>🎟️ Abo-Ausleihen</h4>
-
-    ${abo.length ? `<table><tr><th>Wer</th><th>Wessen Abo</th><th>Anz.</th><th>Offen CHF</th></tr>
-
-      ${abo.map(r => `<tr><td>${nameOf(r.b)}</td><td>${nameOf(r.o)}</td><td>${r.n}</td><td>${chf(r.open)}</td></tr>`).join('')}</table>`
-
-      : '<small>Noch keine Ausleihen.</small>'}
-
-  </div>`;
-
-}
-
- 
-
-// ---------- Stadien, Anfahrt, Parkplätze ----------
-
-function renderStadien() {
-
-  $('view-stadien').innerHTML = stadiums.map(s => {
-
-    const target = s.address || (s.arena + ', ' + s.city);
-
-    const pk = parking.filter(p => p.stadium_id === s.id);
-
-    return `<div class="card ${s.favorite ? 'fav' : ''}">
-
-      <div class="vs">${s.favorite ? '⭐ ' : ''}${esc(s.team)}</div>
-
-      ${esc(s.arena)}, ${esc(s.city)}<br>
-
-      <small>${s.km_einfach ? s.km_einfach + ' km einfach · ' + s.km_einfach * 2 + ' km hin und zurück' : 'Distanz folgt'}</small><br>
-
-      <small><a href="${esc(s.sihf_url || 'https://www.sihf.ch/de/game-center/liga/spielplan/1-1')}" target="_blank">SIHF Spielplan &amp; Resultate</a> ·
-
-      <a href="${esc(s.ep_url || 'https://www.eliteprospects.com/search/team?q=' + encodeURIComponent(s.team))}" target="_blank">Elite Prospects</a></small>
-
-      <details>
-
-        <summary>🅿️ Anfahrt &amp; Parkplätze</summary>
-
-        <p><small>Adresse: ${esc(s.address || 'noch nicht erfasst')}</small>
-
-        ${me.is_admin ? `<button class="small secondary" onclick="editAddress(${s.id})">Adresse bearbeiten</button>` : ''}</p>
-
-        <a href="${route(target)}" target="_blank">🧭 Route ab Telldenkmal</a> ·
-
-        <a href="${maps('Parkplatz in der Nähe von ' + target)}" target="_blank">🔎 Parkplätze in der Nähe suchen</a>
-
-        ${pk.map(p => `<div class="park">🅿️ <b>${esc(p.name)}</b>${p.note ? ' – ' + esc(p.note) : ''}
-
-          <a href="${maps(p.name + ', ' + s.city)}" target="_blank">Karte</a>
-
-          ${(p.created_by === userId || me.is_admin) ? `<button class="small secondary" onclick="delPark(${p.id})">✕</button>` : ''}</div>`).join('')}
-
-        <input id="pk-name-${s.id}" placeholder="Parkplatz-Tipp, z. B. Parkhaus Bahnhof">
-
-        <input id="pk-note-${s.id}" placeholder="Hinweis, z. B. 5 Min. zu Fuss, CHF 10">
-
-        <button class="small" onclick="addPark(${s.id})">Tipp hinzufügen</button>
-
-      </details>
-
-    </div>`;
-
-  }).join('');
-
-}
-
-async function editAddress(id) {
-
-  const s = stadiumOf(id);
-
-  const v = prompt('Adresse von ' + s.arena + ':', s.address || '');
-
-  if (v === null) return;
-
-  const { error } = await sb.from('stadiums').update({ address: v.trim() || null }).eq('id', id);
-
-  if (error) alert('Fehler: ' + error.message); loadAll();
-
-}
-
-async function addPark(stadiumId) {
-
-  const name = $('pk-name-' + stadiumId).value.trim();
-
-  if (!name) { alert('Bitte einen Namen eingeben.'); return; }
-
-  const { error } = await sb.from('parking').insert({ stadium_id: stadiumId, name, note: $('pk-note-' + stadiumId).value.trim() || null });
-
-  if (error) alert('Fehler: ' + error.message); loadAll();
-
-}
-
-async function delPark(id) {
-
-  if (!confirm('Tipp löschen?')) return;
-
-  await sb.from('parking').delete().eq('id', id); loadAll();
-
-}
-
- 
-
-// ---------- Profil ----------
-
-function fillProfil() {
-
-  $('p-name').value = me.display_name || ''; $('p-phone').value = me.phone || ''; $('p-car').value = me.car || '';
-
-  $('p-seats').value = me.seats || 5; $('p-company').checked = !!me.company_car;
-
-  $('p-abo').checked = !!me.has_abo; $('p-abotype').value = me.abo_type || '';
-
-}
-
-$('save').onclick = async () => {
-
-  const a = $('p-abo').checked;
-
-  const { error } = await sb.from('profiles').update({
-
-    display_name: $('p-name').value, phone: $('p-phone').value, car: $('p-car').value,
-
-    seats: parseInt($('p-seats').value) || 5, company_car: $('p-company').checked,
-
-    has_abo: a, abo_type: a ? ($('p-abotype').value || null) : null
-
-  }).eq('id', userId);
-
-  $('p-msg').textContent = error ? 'Fehler: ' + error.message : 'Gespeichert ✔';
-
-  if (!error) loadAll();
-
-};
-
- 
-
-// ---------- Admin ----------
-
-function fillAdmin() {
-
-  $('a-rp').value = settings.rappen_pro_km; $('a-steh').value = settings.preis_steh;
-
-  $('a-sitz').value = settings.preis_sitz; $('a-max').value = settings.max_pro_auto;
-
-}
-
-$('a-save').onclick = async () => {
-
-  const { error } = await sb.from('settings').update({
-
-    rappen_pro_km: parseFloat($('a-rp').value), preis_steh: parseFloat($('a-steh').value),
-
-    preis_sitz: parseFloat($('a-sitz').value), max_pro_auto: parseInt($('a-max').value)
-
-  }).eq('id', 1);
-
-  $('a-msg').textContent = error ? 'Fehler: ' + error.message : 'Gespeichert ✔';
-
-  if (!error) loadAll();
-
-};
-
- 
-
-sb.auth.getSession().then(({ data }) => show(data.session));
-
-sb.auth.onAuthStateChange((_e, session) => show(session));
-
-</script>
-
-
-<script>
-
-// ---------- Freigabe ----------
-
-const pendingBox = document.createElement('section');
-
-pendingBox.className = 'card'; pendingBox.hidden = true;
-
-pendingBox.innerHTML = '<h3>⏳ Warte auf Freigabe</h3><p>Du bist registriert. Sobald der Admin dich freigibt, bist du dabei. Forza Ambrì!</p><button class="small secondary" onclick="sb.auth.signOut()">Abmelden</button>';
-
-document.querySelector('main').appendChild(pendingBox);
-
- 
-
-const usersBox = document.createElement('div');
-
-$('view-admin').appendChild(usersBox);
-
- 
-
-const _origLoadAll = loadAll;
-
-loadAll = async function () {
-
-  const { data } = await sb.from('profiles').select('approved').eq('id', userId).single();
-
-  if (!data || !data.approved) { $('app').hidden = true; pendingBox.hidden = false; return; }
-
-  pendingBox.hidden = true; $('app').hidden = false;
-
-  await _origLoadAll();
-
-  if (me.is_admin) renderUsers();
-
-};
-
- 
-
-function renderUsers() {
-
-  const list = profiles.slice().sort((a, b) => (a.approved === b.approved ? 0 : a.approved ? 1 : -1));
-
-  usersBox.innerHTML = '<h3 style="margin-top:20px">👥 Mitglieder</h3>' + list.map(p => `
-
-    <div class="park">${p.approved ? '✅' : '⏳'} <b>${esc(p.display_name || 'Unbekannt')}</b>
-
-      ${p.id === userId ? '<small>(du)</small>' :
-
-        p.approved ? `<button class="small secondary" onclick="setApproved('${p.id}', false)">Sperren</button>`
-
-                   : `<button class="small" onclick="setApproved('${p.id}', true)">Freigeben</button>`}
-
-    </div>`).join('');
-
-}
-
-async function setApproved(uid, ok) {
-
-  const { error } = await sb.rpc('approve_user', { uid, ok });
-
-  if (error) alert('Fehler: ' + error.message); loadAll();
-
-}
-
-sb.auth.onAuthStateChange((_e, s) => { if (!s) pendingBox.hidden = true; });
-
-<script>
-// ---------- "Bist du dabei?" + kürzere Spieleliste ----------
+// ---------- Spiele mit "Bist du dabei?" ----------
 function gameCard(g, now, km) {
   const s = stadiumOf(g.stadium_id);
   const su = g.signups.filter(r => r.role !== 'nicht');
@@ -975,39 +312,220 @@ function gameCard(g, now, km) {
     + (mine ? '<button class="small secondary" onclick="signoff(' + g.id + ')">Antwort löschen</button>' : '')
     + (me.is_admin ? '<button class="small secondary" onclick="fixKm(' + g.id + ', \'' + (g.km_override ?? '') + '\')">km korrigieren</button>'
       + '<button class="small danger" onclick="delGame(' + g.id + ')">Löschen</button>' : '')
-    + aboBlock(g)
-    + '</div>';
+    + aboBlock(g) + '</div>';
 }
-
-renderGames = function () {
+function renderGames() {
   const now = new Date(), km = kmStand();
   const list = games.filter(g => new Date(g.starts_at) > new Date(now - 6 * 3600e3));
   if (!list.length) { $('games').innerHTML = '<div class="card">Noch keine Spiele erfasst. 🏒</div>'; return; }
   const next = list[0];
-  const answered = next.signups.some(r => r.user_id === userId);
   let ask = '';
-  if (!answered) {
-    ask = '<div class="card fav" style="text-align:center">'
-      + '<h3>🏒 Bist du dabei?</h3>'
-      + '<div class="vs">' + esc(stadiumOf(next.stadium_id).team) + '</div>'
-      + '<small>' + fmt(next.starts_at) + '</small><br>'
+  if (!next.signups.some(r => r.user_id === userId)) {
+    ask = '<div class="card fav" style="text-align:center"><h3>🏒 Bist du dabei?</h3>'
+      + '<div class="vs">' + esc(stadiumOf(next.stadium_id).team) + '</div><small>' + fmt(next.starts_at) + '</small><br>'
       + '<button onclick="signup(' + next.id + ',\'fahrer\')">🚗 Ich fahre</button>'
       + '<button class="secondary" onclick="signup(' + next.id + ',\'mitfahrer\')">🧍 Ich fahre mit</button>'
-      + '<button class="secondary" onclick="signup(' + next.id + ',\'nicht\')">❌ Ich komme nicht</button>'
-      + '</div>';
+      + '<button class="secondary" onclick="signup(' + next.id + ',\'nicht\')">❌ Ich komme nicht</button></div>';
   }
-  const first = list.slice(0, 3).map(g => gameCard(g, now, km)).join('');
   const rest = list.slice(3);
-  let more = '';
-  if (rest.length) {
-    more = '<details><summary>Weitere ' + rest.length + ' Spiele anzeigen</summary>'
-      + rest.map(g => gameCard(g, now, km)).join('')
-      + '</details>';
-  }
-  $('games').innerHTML = ask + first + more;
+  const more = rest.length ? '<details><summary>Weitere ' + rest.length + ' Spiele anzeigen</summary>'
+    + rest.map(g => gameCard(g, now, km)).join('') + '</details>' : '';
+  $('games').innerHTML = ask + list.slice(0, 3).map(g => gameCard(g, now, km)).join('') + more;
+}
+$('g-add').onclick = async () => {
+  if (!$('g-date').value) { $('g-msg').textContent = 'Bitte Datum und Zeit wählen.'; return; }
+  const { error } = await sb.from('games').insert({ stadium_id: parseInt($('g-stadium').value), starts_at: new Date($('g-date').value).toISOString() });
+  $('g-msg').textContent = error ? 'Fehler: ' + error.message : '';
+  if (!error) { $('g-date').value = ''; loadGames(); }
 };
-</script>
-  
-</body>
+async function signup(gameId, role) {
+  const { error } = await sb.from('signups').upsert({ game_id: gameId, user_id: userId, role });
+  if (error) alert('Fehler: ' + error.message); loadGames();
+}
+async function signoff(gameId) { await sb.from('signups').delete().eq('game_id', gameId).eq('user_id', userId); loadGames(); }
+async function delGame(gameId) { if (!confirm('Spiel wirklich löschen?')) return; await sb.from('games').delete().eq('id', gameId); loadGames(); }
+// ---------- Rangliste ----------
+function renderRangliste() {
+  const km = kmStand();
+  const list = profiles.map(p => ({ ...p, km: km[p.id] || 0 })).sort((a, b) => b.km - a.km);
+  const avg = list.length ? list.reduce((s, p) => s + p.km, 0) / list.length : 0;
+  const rp = Number(settings.rappen_pro_km || 0.2), medal = ['🥇','🥈','🥉'];
+  const rows = {};
+  games.flatMap(g => g.abo_offers || []).filter(o => o.borrower_id).forEach(o => {
+    const k = o.borrower_id + '|' + o.owner_id;
+    rows[k] = rows[k] || { b: o.borrower_id, o: o.owner_id, n: 0, open: 0 };
+    rows[k].n++; if (!o.paid) rows[k].open += Number(o.price || 0);
+  });
+  const abo = Object.values(rows);
+  $('view-rangliste').innerHTML = '<div class="card"><h3>🏆 Kilometer-Tabelle</h3>'
+    + '<table><tr><th>Name</th><th>km</th><th>Diff.</th><th>CHF</th></tr>'
+    + list.map((p, i) => { const d = p.km - avg;
+        return '<tr><td>' + (p.km ? (medal[i] || '') : '') + ' ' + esc(p.display_name || 'Unbekannt') + (p.company_car ? ' 🏢' : '') + '</td>'
+          + '<td>' + p.km + '</td><td>' + (d >= 0 ? '+' : '') + Math.round(d) + '</td><td>' + chf(d * rp) + '</td></tr>'; }).join('')
+    + '</table><small>Schnitt ' + Math.round(avg) + ' km · ' + chf(rp) + ' CHF/km · 🏢 Firmenauto. Nur zur Übersicht, kein Muss.</small></div>'
+    + '<div class="card"><h4>🎟️ Abo-Ausleihen</h4>'
+    + (abo.length ? '<table><tr><th>Wer</th><th>Wessen Abo</th><th>Anz.</th><th>Offen CHF</th></tr>'
+        + abo.map(r => '<tr><td>' + nameOf(r.b) + '</td><td>' + nameOf(r.o) + '</td><td>' + r.n + '</td><td>' + chf(r.open) + '</td></tr>').join('') + '</table>'
+      : '<small>Noch keine Ausleihen.</small>')
+    + '</div>';
+}
 
+// ---------- Stadien, Anfahrt, Parkplätze ----------
+function renderStadien() {
+  $('view-stadien').innerHTML = stadiums.map(s => {
+    const target = s.address || (s.arena + ', ' + s.city);
+    const pk = parking.filter(p => p.stadium_id === s.id);
+    return '<div class="card ' + (s.favorite ? 'fav' : '') + '">'
+      + '<div class="vs">' + (s.favorite ? '⭐ ' : '') + esc(s.team) + '</div>'
+      + esc(s.arena) + ', ' + esc(s.city) + '<br>'
+      + '<small>' + (s.km_einfach ? s.km_einfach + ' km einfach · ' + s.km_einfach * 2 + ' km hin und zurück' : 'Distanz folgt') + '</small><br>'
+      + '<small><a href="' + esc(s.sihf_url || 'https://www.sihf.ch/de/game-center/liga/spielplan/1-1') + '" target="_blank">SIHF Spielplan &amp; Resultate</a> · '
+      + '<a href="' + esc(s.ep_url || 'https://www.eliteprospects.com/search/team?q=' + encodeURIComponent(s.team)) + '" target="_blank">Elite Prospects</a></small>'
+      + '<details><summary>🅿️ Anfahrt &amp; Parkplätze</summary>'
+      + '<p><small>Adresse: ' + esc(s.address || 'noch nicht erfasst') + '</small> '
+      + (me.is_admin ? '<button class="small secondary" onclick="editAddress(' + s.id + ')">Adresse bearbeiten</button>' : '') + '</p>'
+      + '<a href="' + route(target) + '" target="_blank">🧭 Route ab Telldenkmal</a> · '
+      + '<a href="' + maps('Parkplatz in der Nähe von ' + target) + '" target="_blank">🔎 Parkplätze in der Nähe suchen</a>'
+      + pk.map(p => '<div class="park">🅿️ <b>' + esc(p.name) + '</b>' + (p.note ? ' – ' + esc(p.note) : '')
+          + ' <a href="' + maps(p.name + ', ' + s.city) + '" target="_blank">Karte</a> '
+          + ((p.created_by === userId || me.is_admin) ? '<button class="small secondary" onclick="delPark(' + p.id + ')">✕</button>' : '') + '</div>').join('')
+      + '<input id="pk-name-' + s.id + '" placeholder="Parkplatz-Tipp, z. B. Parkhaus Bahnhof">'
+      + '<input id="pk-note-' + s.id + '" placeholder="Hinweis, z. B. 5 Min. zu Fuss, CHF 10">'
+      + '<button class="small" onclick="addPark(' + s.id + ')">Tipp hinzufügen</button>'
+      + '</details></div>';
+  }).join('');
+}
+async function editAddress(id) {
+  const s = stadiumOf(id);
+  const v = prompt('Adresse von ' + s.arena + ':', s.address || '');
+  if (v === null) return;
+  const { error } = await sb.from('stadiums').update({ address: v.trim() || null }).eq('id', id);
+  if (error) alert('Fehler: ' + error.message); loadAll();
+}
+async function addPark(stadiumId) {
+  const name = $('pk-name-' + stadiumId).value.trim();
+  if (!name) { alert('Bitte einen Namen eingeben.'); return; }
+  const { error } = await sb.from('parking').insert({ stadium_id: stadiumId, name, note: $('pk-note-' + stadiumId).value.trim() || null });
+  if (error) alert('Fehler: ' + error.message); loadAll();
+}
+async function delPark(id) {
+  if (!confirm('Tipp löschen?')) return;
+  await sb.from('parking').delete().eq('id', id); loadAll();
+}
+
+// ---------- Profil ----------
+function fillProfil() {
+  $('p-name').value = me.display_name || ''; $('p-phone').value = me.phone || ''; $('p-car').value = me.car || '';
+  $('p-seats').value = me.seats || 5; $('p-company').checked = !!me.company_car;
+  $('p-abo').checked = !!me.has_abo; $('p-abotype').value = me.abo_type || '';
+}
+$('save').onclick = async () => {
+  const a = $('p-abo').checked;
+  const { error } = await sb.from('profiles').update({
+    display_name: $('p-name').value, phone: $('p-phone').value, car: $('p-car').value,
+    seats: parseInt($('p-seats').value) || 5, company_car: $('p-company').checked,
+    has_abo: a, abo_type: a ? ($('p-abotype').value || null) : null
+  }).eq('id', userId);
+  $('p-msg').textContent = error ? 'Fehler: ' + error.message : 'Gespeichert ✔';
+  if (!error) loadAll();
+};
+
+// ---------- Admin ----------
+function fillAdmin() {
+  $('a-rp').value = settings.rappen_pro_km; $('a-steh').value = settings.preis_steh;
+  $('a-sitz').value = settings.preis_sitz; $('a-max').value = settings.max_pro_auto;
+}
+$('a-save').onclick = async () => {
+  const { error } = await sb.from('settings').update({
+    rappen_pro_km: parseFloat($('a-rp').value), preis_steh: parseFloat($('a-steh').value),
+    preis_sitz: parseFloat($('a-sitz').value), max_pro_auto: parseInt($('a-max').value)
+  }).eq('id', 1);
+  $('a-msg').textContent = error ? 'Fehler: ' + error.message : 'Gespeichert ✔';
+  if (!error) loadAll();
+};
+
+// ---------- Freigabe ----------
+const pendingBox = document.createElement('section');
+pendingBox.className = 'card'; pendingBox.hidden = true;
+pendingBox.innerHTML = '<h3>⏳ Warte auf Freigabe</h3><p>Du bist registriert. Sobald der Admin dich freigibt, bist du dabei. Forza Ambrì!</p><button class="small secondary" onclick="sb.auth.signOut()">Abmelden</button>';
+document.querySelector('main').appendChild(pendingBox);
+const usersBox = document.createElement('div');
+$('view-admin').appendChild(usersBox);
+
+const _origLoadAll = loadAll;
+loadAll = async function () {
+  const { data } = await sb.from('profiles').select('approved').eq('id', userId).single();
+  if (!data || !data.approved) { $('app').hidden = true; pendingBox.hidden = false; return; }
+  pendingBox.hidden = true; $('app').hidden = false;
+  await _origLoadAll();
+  if (me.is_admin) renderUsers();
+};
+function renderUsers() {
+  const list = profiles.slice().sort((a, b) => (a.approved === b.approved ? 0 : a.approved ? 1 : -1));
+  usersBox.innerHTML = '<h3 style="margin-top:20px">👥 Mitglieder</h3>' + list.map(p =>
+    '<div class="park">' + (p.approved ? '✅' : '⏳') + ' <b>' + esc(p.display_name || 'Unbekannt') + '</b> '
+    + (p.id === userId ? '<small>(du)</small>'
+      : p.approved ? '<button class="small secondary" onclick="setApproved(\'' + p.id + '\', false)">Sperren</button>'
+                   : '<button class="small" onclick="setApproved(\'' + p.id + '\', true)">Freigeben</button>')
+    + '</div>').join('');
+}
+async function setApproved(uid, ok) {
+  const { error } = await sb.rpc('approve_user', { uid, ok });
+  if (error) alert('Fehler: ' + error.message); loadAll();
+}
+
+// ---------- SIHF-Spielplan-Import (Ambrì) ----------
+const AMBRI_ID = 101152, SIHF_SEASON = 2027;
+const impBox = document.createElement('div');
+impBox.innerHTML = '<h3 style="margin-top:20px">📅 Spielplan</h3><button id="imp-btn">Ambrì-Spielplan von SIHF importieren</button><p id="imp-msg"></p>';
+$('view-admin').appendChild(impBox);
+function sihfJsonp(url) {
+  return new Promise((ok, ko) => {
+    const cb = 'sihf' + Date.now(), s = document.createElement('script');
+    const t = setTimeout(() => { end(); ko(new Error('Zeitüberschreitung')); }, 15000);
+    function end() { clearTimeout(t); delete window[cb]; s.remove(); }
+    window[cb] = d => { end(); ok(d); };
+    s.onerror = () => { end(); ko(new Error('SIHF nicht erreichbar')); };
+    s.src = url + '&callback=' + cb; document.body.appendChild(s);
+  });
+}
+$('imp-btn').onclick = async () => {
+  const msg = $('imp-msg');
+  msg.textContent = '⏳ Lade Spielplan …';
+  try {
+    const y = SIHF_SEASON;
+    const url = 'https://data.sihf.ch/Statistic/api/cms/cache300?alias=results&searchQuery=1//1'
+      + '&filterQuery=' + y + '/all/01.08.' + (y - 1) + '-30.04.' + y + '&filterBy=season,phase,date'
+      + '&orderBy=date&orderByDescending=false&take=1000&skip=0&language=de';
+    const d = await sihfJsonp(url);
+    const now = new Date(), rows = [];
+    (d.data || []).forEach(r => {
+      const teams = r.filter(c => c && c.type === 'team');
+      if (teams.length < 2) return;
+      const home = teams[0], away = teams[1];
+      if (home.id !== AMBRI_ID && away.id !== AMBRI_ID) return;
+      const date = r.find(c => typeof c === 'string' && /^\d{2}\.\d{2}\.\d{4}$/.test(c));
+      const time = r.find(c => typeof c === 'string' && /^\d{2}:\d{2}$/.test(c)) || '19:45';
+      const link = r.find(c => c && c.type === 'linkToGameDetail');
+      if (!date || !link) return;
+      const p = date.split('.');
+      const start = new Date(p[2] + '-' + p[1] + '-' + p[0] + 'T' + time);
+      if (start < now) return;
+      const st = stadiums.find(s => s.sihf_club_id === home.id);
+      if (!st) return;
+      rows.push({ stadium_id: st.id, starts_at: start.toISOString(), sihf_id: String(link.gameId) });
+    });
+    if (!rows.length) { msg.textContent = 'Keine neuen Spiele gefunden.'; return; }
+    const { error } = await sb.from('games').upsert(rows, { onConflict: 'sihf_id', ignoreDuplicates: true });
+    msg.textContent = error ? 'Fehler: ' + error.message : '✅ ' + rows.length + ' Ambrì-Spiele geprüft und übernommen.';
+    if (!error) loadGames();
+  } catch (e) { msg.textContent = '❌ ' + e.message; }
+};
+
+// ---------- Start ----------
+sb.auth.getSession().then(({ data }) => show(data.session));
+sb.auth.onAuthStateChange((_e, session) => { show(session); if (!session) pendingBox.hidden = true; });
+</script>
+</body>
 </html>
+  
