@@ -556,6 +556,68 @@ gameCard = function (g, now, km) {
   const btn = '<button class="small" style="background:#25D366" onclick="shareWa(' + g.id + ')">📲 In WhatsApp teilen</button>';
   return html.replace(/<\/div>$/, btn + '</div>');
 };
+</script>
+<script>
+// ---------- Gegner anzeigen (Heim – Gast) ----------
+const matchup = g => (g.home_team && g.away_team) ? g.home_team + ' – ' + g.away_team : stadiumOf(g.stadium_id).team;
+
+// Spielkarten
+const _gcTeams = gameCard;
+gameCard = function (g, now, km) {
+  return _gcTeams(g, now, km).replace(esc(stadiumOf(g.stadium_id).team) + '</div>', esc(matchup(g)) + '</div>');
+};
+// WhatsApp-Text
+const _waTeams = waText;
+waText = g => _waTeams(g).replace(stadiumOf(g.stadium_id).team, matchup(g));
+// "Bist du dabei?" und Countdown oben
+const _rgTeams = renderGames;
+renderGames = function () {
+  _rgTeams();
+  const next = games.find(g => new Date(g.starts_at) > new Date(Date.now() - 6 * 3600e3));
+  const vs = document.querySelector('#games .card.fav[style] .vs');
+  if (next && vs) vs.textContent = matchup(next);
+};
+const _cdTeams = startCountdown;
+startCountdown = function () {
+  _cdTeams();
+  const next = games.find(g => new Date(g.starts_at) > new Date());
+  if (next) $('hero-text').innerHTML = 'Nächstes Spiel: <b>' + esc(matchup(next)) + '</b> · ' + fmt(next.starts_at);
+};
+
+// Import neu: speichert auch Heim- und Gastteam, ergänzt bestehende Spiele
+$('imp-btn').onclick = async () => {
+  const msg = $('imp-msg');
+  msg.textContent = '⏳ Lade Spielplan …';
+  try {
+    const y = SIHF_SEASON;
+    const url = 'https://data.sihf.ch/Statistic/api/cms/cache300?alias=results&searchQuery=1//1'
+      + '&filterQuery=' + y + '/all/01.08.' + (y - 1) + '-30.04.' + y + '&filterBy=season,phase,date'
+      + '&orderBy=date&orderByDescending=false&take=1000&skip=0&language=de';
+    const d = await sihfJsonp(url);
+    const now = new Date(Date.now() - 6 * 3600e3), rows = [];
+    (d.data || []).forEach(r => {
+      const teams = r.filter(c => c && c.type === 'team');
+      if (teams.length < 2) return;
+      const home = teams[0], away = teams[1];
+      if (home.id !== AMBRI_ID && away.id !== AMBRI_ID) return;
+      const date = r.find(c => typeof c === 'string' && /^\d{2}\.\d{2}\.\d{4}$/.test(c));
+      const time = r.find(c => typeof c === 'string' && /^\d{2}:\d{2}$/.test(c)) || '19:45';
+      const link = r.find(c => c && c.type === 'linkToGameDetail');
+      if (!date || !link) return;
+      const p = date.split('.');
+      const start = new Date(p[2] + '-' + p[1] + '-' + p[0] + 'T' + time);
+      if (start < now) return;
+      const st = stadiums.find(s => s.sihf_club_id === home.id);
+      if (!st) return;
+      rows.push({ stadium_id: st.id, starts_at: start.toISOString(), sihf_id: String(link.gameId),
+                  home_team: home.name, away_team: away.name });
+    });
+    if (!rows.length) { msg.textContent = 'Keine Spiele gefunden.'; return; }
+    const { error } = await sb.from('games').upsert(rows, { onConflict: 'sihf_id' });
+    msg.textContent = error ? 'Fehler: ' + error.message : '✅ ' + rows.length + ' Ambrì-Spiele aktualisiert, inkl. Gegner.';
+    if (!error) loadGames();
+  } catch (e) { msg.textContent = '❌ ' + e.message; }
+};
 </script>  
 </body>
 </html>
