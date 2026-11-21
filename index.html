@@ -942,62 +942,6 @@ async function setApproved(uid, ok) {
 
 sb.auth.onAuthStateChange((_e, s) => { if (!s) pendingBox.hidden = true; });
 
-</script>
-
-<script>
-// ---------- SIHF-Spielplan-Import (Ambrì) ----------
-const AMBRI_ID = 101152, SIHF_SEASON = 2027;
-const impBox = document.createElement('div');
-impBox.innerHTML = `<h3 style="margin-top:20px">📅 Spielplan</h3>
-  <button id="imp-btn">Ambrì-Spielplan von SIHF importieren</button>
-  <p id="imp-msg"></p>`;
-$('view-admin').appendChild(impBox);
-
-function sihfJsonp(url) {
-  return new Promise((ok, ko) => {
-    const cb = 'sihf' + Date.now(), s = document.createElement('script');
-    const t = setTimeout(() => { end(); ko(new Error('Zeitüberschreitung')); }, 15000);
-    function end() { clearTimeout(t); delete window[cb]; s.remove(); }
-    window[cb] = d => { end(); ok(d); };
-    s.onerror = () => { end(); ko(new Error('SIHF nicht erreichbar')); };
-    s.src = url + '&callback=' + cb; document.body.appendChild(s);
-  });
-}
-
-$('imp-btn').onclick = async () => {
-  const msg = $('imp-msg');
-  msg.textContent = '⏳ Lade Spielplan …';
-  try {
-    const y = SIHF_SEASON;
-    const url = 'https://data.sihf.ch/Statistic/api/cms/cache300?alias=results&searchQuery=1//1'
-      + `&filterQuery=${y}/all/01.08.${y - 1}-30.04.${y}&filterBy=season,phase,date`
-      + '&orderBy=date&orderByDescending=false&take=1000&skip=0&language=de';
-    const d = await sihfJsonp(url);
-    const now = new Date(), rows = [];
-    (d.data || []).forEach(r => {
-      const teams = r.filter(c => c && c.type === 'team');
-      if (teams.length < 2) return;
-      const [home, away] = teams;
-      if (home.id !== AMBRI_ID && away.id !== AMBRI_ID) return;
-      const date = r.find(c => typeof c === 'string' && /^\d{2}\.\d{2}\.\d{4}$/.test(c));
-      const time = r.find(c => typeof c === 'string' && /^\d{2}:\d{2}$/.test(c)) || '19:45';
-      const link = r.find(c => c && c.type === 'linkToGameDetail');
-      if (!date || !link) return;
-      const [dd, mm, yy] = date.split('.');
-      const start = new Date(`${yy}-${mm}-${dd}T${time}`);
-      if (start < now) return;                       // nur kommende Spiele
-      const st = stadiums.find(s => s.sihf_club_id === home.id);
-      if (!st) return;
-      rows.push({ stadium_id: st.id, starts_at: start.toISOString(), sihf_id: String(link.gameId) });
-    });
-    if (!rows.length) { msg.textContent = 'Keine neuen Spiele gefunden.'; return; }
-    const { error } = await sb.from('games').upsert(rows, { onConflict: 'sihf_id', ignoreDuplicates: true });
-    msg.textContent = error ? 'Fehler: ' + error.message : `✅ ${rows.length} Ambrì-Spiele geprüft und übernommen.`;
-    if (!error) loadGames();
-  } catch (e) { msg.textContent = '❌ ' + e.message; }
-};
-</script>
-
 <script>
 // ---------- "Bist du dabei?" + kürzere Spieleliste ----------
 function gameCard(g, now, km) {
@@ -1010,28 +954,29 @@ function gameCard(g, now, km) {
   const mine = g.signups.find(r => r.user_id === userId);
   let hint = '';
   if (su.length && missing > 0) {
-    hint = `<div class="warn">Es fehlen noch ${missing} Plätze, also mindestens ein Fahrer.`;
+    hint = '<div class="warn">Es fehlen noch ' + missing + ' Plätze, also mindestens ein Fahrer.';
     if (hours <= 12) {
       const v = riders.slice().sort((a, b) => (km[a.user_id] || 0) - (km[b.user_id] || 0))[0];
-      if (v) hint += `<br>💡 Vorschlag: <b>${nameOf(v.user_id)}</b> (bisher ${km[v.user_id] || 0} km)`;
+      if (v) hint += '<br>💡 Vorschlag: <b>' + nameOf(v.user_id) + '</b> (bisher ' + (km[v.user_id] || 0) + ' km)';
     }
     hint += '</div>';
   }
   const btn = (role, label) =>
-    `<button class="small ${mine && mine.role === role ? '' : 'secondary'}" onclick="signup(${g.id},'${role}')">${label}</button>`;
-  return `<div class="card ${s.favorite ? 'fav' : ''}">
-    <div class="vs">${s.favorite ? '🔵⚪ ' : '🚗 '}${esc(s.team)}</div>
-    <small>${esc(s.arena)} · ${fmt(g.starts_at)} · ${gameKm(g)} km hin und zurück${g.km_override != null ? ' (korrigiert)' : ''}</small>
-    <p>🚗 Fahrer: ${drivers.map(d => nameOf(d.user_id)).join(', ') || '–'}<br>
-       🧍 Mitfahrer: ${riders.map(r => nameOf(r.user_id)).join(', ') || '–'}
-       ${no.length ? `<br><small>❌ Nicht dabei: ${no.map(r => nameOf(r.user_id)).join(', ')}</small>` : ''}</p>
-    ${hint}
-    ${btn('fahrer', 'Ich fahre')}${btn('mitfahrer', 'Ich fahre mit')}${btn('nicht', 'Ich komme nicht')}
-    ${mine ? `<button class="small secondary" onclick="signoff(${g.id})">Antwort löschen</button>` : ''}
-    ${me.is_admin ? `<button class="small secondary" onclick="fixKm(${g.id}, '${g.km_override ?? ''}')">km korrigieren</button>
-      <button class="small danger" onclick="delGame(${g.id})">Löschen</button>` : ''}
-    ${aboBlock(g)}
-  </div>`;
+    '<button class="small ' + (mine && mine.role === role ? '' : 'secondary') + '" onclick="signup(' + g.id + ',\'' + role + '\')">' + label + '</button>';
+  return '<div class="card ' + (s.favorite ? 'fav' : '') + '">'
+    + '<div class="vs">' + (s.favorite ? '🔵⚪ ' : '🚗 ') + esc(s.team) + '</div>'
+    + '<small>' + esc(s.arena) + ' · ' + fmt(g.starts_at) + ' · ' + gameKm(g) + ' km hin und zurück'
+    + (g.km_override != null ? ' (korrigiert)' : '') + '</small>'
+    + '<p>🚗 Fahrer: ' + (drivers.map(d => nameOf(d.user_id)).join(', ') || '–') + '<br>'
+    + '🧍 Mitfahrer: ' + (riders.map(r => nameOf(r.user_id)).join(', ') || '–')
+    + (no.length ? '<br><small>❌ Nicht dabei: ' + no.map(r => nameOf(r.user_id)).join(', ') + '</small>' : '')
+    + '</p>' + hint
+    + btn('fahrer', 'Ich fahre') + btn('mitfahrer', 'Ich fahre mit') + btn('nicht', 'Ich komme nicht')
+    + (mine ? '<button class="small secondary" onclick="signoff(' + g.id + ')">Antwort löschen</button>' : '')
+    + (me.is_admin ? '<button class="small secondary" onclick="fixKm(' + g.id + ', \'' + (g.km_override ?? '') + '\')">km korrigieren</button>'
+      + '<button class="small danger" onclick="delGame(' + g.id + ')">Löschen</button>' : '')
+    + aboBlock(g)
+    + '</div>';
 }
 
 renderGames = function () {
@@ -1040,21 +985,27 @@ renderGames = function () {
   if (!list.length) { $('games').innerHTML = '<div class="card">Noch keine Spiele erfasst. 🏒</div>'; return; }
   const next = list[0];
   const answered = next.signups.some(r => r.user_id === userId);
-  const ask = answered ? '' : `<div class="card fav" style="text-align:center">
-      <h3>🏒 Bist du dabei?</h3>
-      <div class="vs">${esc(stadiumOf(next.stadium_id).team)}</div>
-      <small>${fmt(next.starts_at)}</small><br>
-      <button onclick="signup(${next.id},'fahrer')">🚗 Ich fahre</button>
-      <button class="secondary" onclick="signup(${next.id},'mitfahrer')">🧍 Ich fahre mit</button>
-      <button class="secondary" onclick="signup(${next.id},'nicht')">❌ Ich komme nicht</button>
-    </div>`;
+  let ask = '';
+  if (!answered) {
+    ask = '<div class="card fav" style="text-align:center">'
+      + '<h3>🏒 Bist du dabei?</h3>'
+      + '<div class="vs">' + esc(stadiumOf(next.stadium_id).team) + '</div>'
+      + '<small>' + fmt(next.starts_at) + '</small><br>'
+      + '<button onclick="signup(' + next.id + ',\'fahrer\')">🚗 Ich fahre</button>'
+      + '<button class="secondary" onclick="signup(' + next.id + ',\'mitfahrer\')">🧍 Ich fahre mit</button>'
+      + '<button class="secondary" onclick="signup(' + next.id + ',\'nicht\')">❌ Ich komme nicht</button>'
+      + '</div>';
+  }
   const first = list.slice(0, 3).map(g => gameCard(g, now, km)).join('');
   const rest = list.slice(3);
-  $('games').innerHTML = ask + first + (rest.length
-    ? `<details><summary>Weitere ${rest.length} Spiele anzeigen</summary>${rest.map(g => gameCard(g, now, km)).join('')}</details>`
-    : '');
+  let more = '';
+  if (rest.length) {
+    more = '<details><summary>Weitere ' + rest.length + ' Spiele anzeigen</summary>'
+      + rest.map(g => gameCard(g, now, km)).join('')
+      + '</details>';
+  }
+  $('games').innerHTML = ask + first + more;
 };
-if (games.length) renderGames();
 </script>
   
 </body>
