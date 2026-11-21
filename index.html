@@ -526,5 +526,36 @@ $('imp-btn').onclick = async () => {
 sb.auth.getSession().then(({ data }) => show(data.session));
 sb.auth.onAuthStateChange((_e, session) => { show(session); if (!session) pendingBox.hidden = true; });
 </script>
+<script>
+// ---------- WhatsApp teilen ----------
+function waText(g) {
+  const s = stadiumOf(g.stadium_id);
+  const su = g.signups.filter(r => r.role !== 'nicht');
+  const drivers = su.filter(r => r.role === 'fahrer');
+  const riders = su.filter(r => r.role === 'mitfahrer');
+  const cap = drivers.reduce((n, d) => n + (prof(d.user_id).seats || settings.max_pro_auto || 5), 0);
+  const free = cap - su.length;
+  const name = id => prof(id).display_name || 'Unbekannt';
+  let t = '🏒 ' + s.team + ' · ' + fmt(g.starts_at) + '\n';
+  t += '🚗 Fahrer: ' + (drivers.map(d => name(d.user_id)).join(', ') || 'noch niemand') + '\n';
+  t += '🧍 Mitfahrer: ' + (riders.map(r => name(r.user_id)).join(', ') || '–') + '\n';
+  if (!drivers.length) t += '❗ Wer fährt?\n';
+  else if (free > 0) t += '✅ Noch ' + free + ' Plätze frei\n';
+  else if (free < 0) t += '❗ Es fehlen ' + (-free) + ' Plätze, wir brauchen noch einen Fahrer\n';
+  else t += '🚫 Alle Plätze belegt\n';
+  t += '👉 Melde dich: https://pucknride.github.io';
+  return t;
+}
+function shareWa(gameId) {
+  const g = games.find(x => x.id === gameId);
+  if (g) window.open('https://wa.me/?text=' + encodeURIComponent(waText(g)), '_blank');
+}
+const _origGameCard = gameCard;
+gameCard = function (g, now, km) {
+  const html = _origGameCard(g, now, km);
+  const btn = '<button class="small" style="background:#25D366" onclick="shareWa(' + g.id + ')">📲 In WhatsApp teilen</button>';
+  return html.replace(/<\/div>$/, btn + '</div>');
+};
+</script>  
 </body>
 </html>
